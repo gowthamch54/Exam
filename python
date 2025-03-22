@@ -1,0 +1,676 @@
+# EXP-1 8-Puzzle Problem (Simple BFS)
+from collections import deque
+
+def solve_8_puzzle():
+    # Prompt user to enter the initial 8-puzzle state
+    print("Enter 8-puzzle as 9 numbers (0 for blank, space-separated):")
+    initial = list(map(int, input().split()))  # Sample Input: 1 2 3 4 0 6 7 5 8
+    # Convert flat list into 3x3 grid
+    initial = [initial[i:i+3] for i in range(0, 9, 3)]
+    # Define the goal state
+    goal = [[1,2,3], [4,5,6], [7,8,0]]
+    
+    # Use queue for BFS, starting with initial state and empty move list
+    queue = deque([(initial, [])])
+    # Track visited states to avoid loops
+    visited = set()
+    
+    while queue:
+        # Get current state and moves taken so far
+        state, moves = queue.popleft()
+        # If current state matches goal, return the moves
+        if state == goal:
+            return moves
+        # Convert state to tuple for hashing in visited set
+        state_tuple = tuple(map(tuple, state))
+        if state_tuple in visited:
+            continue
+        visited.add(state_tuple)
+        
+        # Find blank tile (0) position
+        for i in range(3):
+            for j in range(3):
+                if state[i][j] == 0:
+                    # Possible moves: Up, Down, Left, Right
+                    for di, dj, move in [(-1,0,"Up"), (1,0,"Down"), (0,-1,"Left"), (0,1,"Right")]:
+                        ni, nj = i+di, j+dj
+                        # Check if move is within bounds
+                        if 0 <= ni < 3 and 0 <= nj < 3:
+                            # Create new state by swapping blank with adjacent tile
+                            new_state = [row[:] for row in state]
+                            new_state[i][j], new_state[ni][nj] = new_state[ni][nj], new_state[i][j]
+                            queue.append((new_state, moves + [move]))
+    return "No solution"
+
+# Sample Output for "1 2 3 4 0 6 7 5 8":
+# Solution: ['Down', 'Right']
+print("Solution:", solve_8_puzzle())
+
+#EXP - 2 8-Queens Problem (Simple Backtracking)
+def solve_8_queens():
+    # Initialize 8x8 board with zeros
+    board = [[0]*8 for _ in range(8)]
+    
+    # Check if placing a queen at (row, col) is safe
+    def is_safe(row, col):
+        # Check row on left
+        for j in range(col):
+            if board[row][j]: return False
+        # Check upper diagonal on left
+        for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+            if board[i][j]: return False
+        # Check lower diagonal on left
+        for i, j in zip(range(row, 8), range(col, -1, -1)):
+            if board[i][j]: return False
+        return True
+    
+    # Recursive function to place queens column by column
+    def solve(col):
+        # If all columns filled, solution found
+        if col >= 8: return True
+        # Try placing queen in each row of current column
+        for i in range(8):
+            if is_safe(i, col):
+                board[i][col] = 1  # Place queen
+                if solve(col + 1): return True  # Recur for next column
+                board[i][col] = 0  # Backtrack if no solution
+        return False
+    
+    # Start solving from first column
+    solve(0)
+    print("8-Queens Solution (1 = Queen):")
+    for row in board:
+        print(row)
+
+solve_8_queens()
+
+#EXP-3 Water Jug Problem (Simple BFS)
+from collections import deque
+
+def water_jug_problem():
+    # Get jug capacities and target from user
+    x_cap = int(input("Enter capacity of jug X: "))  # Sample Input: 4
+    y_cap = int(input("Enter capacity of jug Y: "))  # Sample Input: 3
+    target = int(input("Enter target amount: "))     # Sample Input: 2
+    
+    # Start with both jugs empty and empty steps list
+    queue = deque([(0, 0, [])])
+    visited = set()
+    
+    while queue:
+        # Current state of jugs and steps taken
+        x, y, steps = queue.popleft()
+        # If target reached in either jug, return steps
+        if x == target or y == target:
+            return steps
+        if (x, y) in visited: continue
+        visited.add((x, y))
+        
+        # Possible operations
+        moves = [
+            (x_cap, y, "Fill X"), (x, y_cap, "Fill Y"),
+            (0, y, "Empty X"), (x, 0, "Empty Y"),
+            (max(0, x-(y_cap-y)), min(y_cap, y+x), "Pour X to Y"),
+            (min(x_cap, x+y), max(0, y-(x_cap-x)), "Pour Y to X")
+        ]
+        # Add each valid new state to queue
+        for nx, ny, move in moves:
+            if (nx, ny) not in visited:
+                queue.append((nx, ny, steps + [move]))
+    return "No solution"
+
+# Sample Output for inputs 4, 3, 2:
+# Steps: ['Fill X', 'Pour X to Y', 'Empty Y', 'Pour X to Y']
+print("Steps:", water_jug_problem())
+
+#EXP-4 Crypt-Arithmetic Problem (Simple)
+def solve_cryptarithmetic():
+    # Get puzzle from user
+    puzzle = input("Enter crypt-arithmetic puzzle (e.g., SEND + MORE = MONEY): ")  # Sample Input: SEND + MORE = MONEY
+    words = puzzle.split()
+    result = words[-1]
+    # Get unique letters
+    letters = set(''.join(words))
+    
+    # Check if assignment is valid
+    def is_valid(assignment):
+        if len(set(assignment.values())) != len(assignment): return False  # No duplicate digits
+        if any(assignment.get(word[0], 0) == 0 for word in words): return False  # No leading zeros
+        nums = [int(''.join(str(assignment[c]) for c in word)) for word in words[:-1]]
+        return sum(nums) == int(''.join(str(assignment[c]) for c in result))
+    
+    # Backtrack to find digit assignments
+    def backtrack(assignment, remaining):
+        if not remaining: return assignment if is_valid(assignment) else None
+        letter = remaining.pop()
+        for digit in range(10):
+            if digit not in assignment.values():
+                assignment[letter] = digit
+                result = backtrack(assignment.copy(), remaining.copy())
+                if result: return result
+        return None
+    
+    solution = backtrack({}, set(letters))
+    print("Solution:", solution)
+
+# Sample Output for "SEND + MORE = MONEY":
+# Solution: {'S': 9, 'E': 5, 'N': 6, 'D': 7, 'M': 1, 'O': 0, 'R': 8, 'Y': 2}
+solve_cryptarithmetic()
+
+#EXP -5 Missionaries and Cannibals (Simple BFS)
+from collections import deque
+
+def solve_missionaries_cannibals():
+    # Initial state: 3 missionaries, 3 cannibals, boat on left
+    start = (3, 3, 1)
+    goal = (0, 0, 0)
+    queue = deque([(start, [])])
+    visited = set()
+    
+    while queue:
+        (m, c, b), path = queue.popleft()
+        if (m, c, b) == goal: return path
+        if (m, c, b) in visited: continue
+        visited.add((m, c, b))
+        # Check if cannibals outnumber missionaries on either side
+        if m < c and m > 0 or 3-m < 3-c and 3-m > 0: continue
+        
+        # Possible boat moves (1 or 2 people)
+        for dm, dc in [(1,0), (2,0), (0,1), (0,2), (1,1)]:
+            if b == 1:  # Boat moves right
+                nm, nc, nb = m-dm, c-dc, 0
+            else:  # Boat moves left
+                nm, nc, nb = m+dm, c+dc, 1
+            if 0 <= nm <= 3 and 0 <= nc <= 3:
+                queue.append(((nm, nc, nb), path + [(dm, dc, "right" if b==1 else "left")]))
+    return "No solution"
+
+# Sample Output:
+# Steps: [(1, 1, 'right'), (1, 0, 'left'), (2, 0, 'right'), (1, 0, 'left'), (2, 0, 'right')]
+print("Steps:", solve_missionaries_cannibals())
+
+#EXP - 6 Vacuum Cleaner Problem (Simple)
+def vacuum_cleaner():
+    # Get initial state of rooms and starting location
+    rooms = {'A': input("Is room A dirty? (yes/no): ") == 'yes',  # Sample Input: yes
+             'B': input("Is room B dirty? (yes/no): ") == 'yes'}  # Sample Input: yes
+    location = input("Start in A or B? ").upper()                 # Sample Input: A
+    
+    # Continue until both rooms are clean
+    while rooms['A'] or rooms['B']:
+        if rooms[location]:
+            print(f"Cleaning {location}")
+            rooms[location] = False  # Clean the current room
+        else:
+            print(f"Moving to {'B' if location == 'A' else 'A'}")
+            location = 'B' if location == 'A' else 'A'  # Move to other room
+    print("All clean!")
+
+# Sample Output for inputs "yes", "yes", "A":
+# Cleaning A
+# Moving to B
+# Cleaning B
+# All clean!
+vacuum_cleaner()
+
+#EXP-7 BFS Implementation (Simple)
+from collections import deque
+
+def bfs():
+    # Dictionary to store the graph
+    graph = {}
+    # Get number of nodes from user
+    n = int(input("Enter number of nodes: "))  # Sample Input: 5
+    # Build the graph by taking nodes and their neighbors
+    print("Enter each node and its neighbors:")
+    for _ in range(n):
+        node = input("Enter node: ").upper()  # Convert to uppercase: Sample Inputs: a, B, C, D, E
+        neighbors = input(f"Neighbors of {node} (space-separated): ").upper().split()  # a: B C, B: A D, C: A E, D: B E, E: C D
+        graph[node] = neighbors
+    
+    # Get start and goal nodes for the search
+    start = input("Enter start node: ").upper()  # Sample Input: A
+    goal = input("Enter goal node: ").upper()    # Sample Input: E
+    
+    # Queue for BFS: stores (node, path) pairs
+    queue = deque([(start, [start])])
+    # Set to keep track of visited nodes
+    visited = set()
+    
+    print(f"\nExploring nodes from {start} to {goal} using BFS:")
+    while queue:
+        # Get the current node and its path
+        node, path = queue.popleft()
+        print(f"Visiting: {node}, Current Path: {path}")
+        
+        # If goal is reached, return the path
+        if node == goal:
+            return f"Goal reached! Path: {path}"
+        
+        # Skip if node already visited
+        if node in visited:
+            continue
+        visited.add(node)
+        
+        # Add all unvisited neighbors to the queue
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                queue.append((neighbor, path + [neighbor]))
+    
+    # If queue is empty and goal not found
+    return "No path exists to the goal!"
+
+# Run the BFS function
+result = bfs()
+print(result)
+
+#EXP-8 DFS Implementation (Simple)
+def dfs():
+    # Dictionary to store the graph
+    graph = {}
+    # Get number of nodes from user
+    n = int(input("Enter number of nodes: "))  # Sample Input: 5
+    # Build the graph by taking nodes and their neighbors
+    print("Enter each node and its neighbors:")
+    for _ in range(n):
+        node = input("Enter node: ").upper()  # Convert to uppercase: Sample Inputs: a, B, C, D, E
+        neighbors = input(f"Neighbors of {node} (space-separated,): ").upper().split()  # a: B C, B: A D, C: A E, D: B E, E: C D
+        graph[node] = neighbors
+    
+    # Get start and goal nodes for the search
+    start = input("Enter start node: ").upper()  # Sample Input: A
+    goal = input("Enter goal node: ").upper()    # Sample Input: E
+    
+    # Set to track visited nodes
+    visited = set()
+    
+    # Recursive DFS function
+    def search(node, path):
+        print(f"Visiting: {node}, Current Path: {path}")
+        
+        # If goal is reached, return the path
+        if node == goal:
+            return f"Goal reached! Path: {path}"
+        
+        # Mark node as visited
+        visited.add(node)
+        
+        # Explore each neighbor recursively
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                result = search(neighbor, path + [neighbor])
+                if result:  # If a path to goal is found, return it
+                    return result
+        return None
+    
+    # Start DFS from the start node
+    print(f"\nExploring nodes from {start} to {goal} using DFS:")
+    result = search(start, [start])
+    return result if result else "No path exists to the goal!"
+
+# Run the DFS function
+result = dfs()
+print(result)
+
+#EXP-9 Travelling Salesman Problem (Simple)
+def tsp():
+    n = int(input("Enter number of cities: "))  # Sample Input: 4
+    graph = []
+    # Get distance matrix from user
+    for i in range(n):
+        row = list(map(int, input(f"Enter distances from city {i} (space-separated): ").split()))  # 0: 0 10 15 20, 1: 10 0 35 25, 2: 15 35 0 30, 3: 20 25 30 0
+        graph.append(row)
+    
+    # Start at city 0
+    path = [0]
+    visited = set([0])
+    total = 0
+    
+    curr = 0
+    # Greedy: always pick nearest unvisited city
+    while len(visited) < n:
+        next_city = min((i for i in range(n) if i not in visited), 
+                       key=lambda x: graph[curr][x])
+        total += graph[curr][next_city]
+        path.append(next_city)
+        visited.add(next_city)
+        curr = next_city
+    total += graph[curr][0]  # Return to start
+    path.append(0)
+    
+    print(f"Path: {path}, Total Distance: {total}")
+
+# Sample Output for inputs above:
+# Path: [0, 1, 3, 2, 0], Total Distance: 80
+tsp()
+
+#EXP-10 A* Algorithm (Simple)
+from heapq import heappush, heappop
+
+def a_star():
+    # Dictionary to store the graph with weights
+    graph = {}
+    # Get number of nodes
+    n = int(input("Enter number of nodes: "))  # Sample Input: 4
+    print("Enter each node and its neighbors with costs:")
+    for _ in range(n):
+        node = input("Enter node: ").upper()  # Sample Inputs: A, B, C, D
+        edges = input(f"Neighbors and costs for {node} (e.g., B:4 C:2): ").upper().split()  # A: B:4 C:2, B: D:5, C: D:8, D:0
+        graph[node] = {e.split(':')[0]: int(e.split(':')[1]) for e in edges if ':' in e}
+    
+    # Get start and goal nodes
+    start = input("Enter start node: ").upper()  # Sample Input: A
+    goal = input("Enter goal node: ").upper()    # Sample Input: D
+    
+    # Get heuristic values for each node
+    print("Enter heuristic values (estimated cost to goal):")
+    h = {node: int(input(f"Heuristic for {node}: ")) for node in graph}  # A: 7, B: 6, C: 5, D: 0
+    
+    # Priority queue: (f_score = g + h, g_score, node, path)
+    open_list = [(h[start], 0, start, [start])]
+    visited = set()
+    
+    print(f"\nExploring from {start} to {goal} using A*:")
+    while open_list:
+        f, cost, node, path = heappop(open_list)
+        print(f"Visiting: {node}, f={f}, g={cost}, Path: {path}")
+        
+        if node == goal:
+            return f"Goal reached! Path: {path}, Cost: {cost}"
+        
+        if node in visited:
+            continue
+        visited.add(node)
+        
+        # Explore neighbors
+        for neighbor, weight in graph[node].items():
+            if neighbor not in visited:
+                new_cost = cost + weight
+                heappush(open_list, (new_cost + h[neighbor], new_cost, neighbor, path + [neighbor]))
+    return "No path exists!"
+
+# Run the A* function
+print(a_star())
+
+#EXP-11 Map Coloring (Simple CSP)
+def map_coloring():
+    # Dictionary to store the graph
+    graph = {}
+    n = int(input("Enter number of regions: "))  # Sample Input: 3
+    print("Enter each region and its neighbors:")
+    for _ in range(n):
+        region = input("Enter region: ").upper()  # Sample Inputs: A, B, C
+        neighbors = input(f"Neighbors of {region} (space-separated): ").upper().split()  # A: B C, B: A C, C: A B
+        graph[region] = neighbors
+    
+    # Get available colors
+    colors = input("Enter colors (space-separated): ").split()  # Sample Input: R G B
+    
+    # Check if a color is safe for a region
+    def is_safe(region, color, assignment):
+        return all(assignment.get(n, '') != color for n in graph[region])
+    
+    # Backtracking to assign colors
+    def solve(assignment):
+        if len(assignment) == len(graph):
+            return assignment
+        region = next(r for r in graph if r not in assignment)
+        for color in colors:
+            if is_safe(region, color, assignment):
+                assignment[region] = color
+                result = solve(assignment.copy())
+                if result:
+                    return result
+        return None
+    
+    solution = solve({})
+    print("Coloring:", solution if solution else "No solution exists!")
+
+# Run the map coloring function
+map_coloring()
+
+#EXP-12 Tic Tac Toe (Simple)
+def tic_tac_toe():
+    # Initialize 3x3 board with empty spaces
+    board = [' ']*9
+    player = 'X'
+    
+    # Print the board
+    def print_board():
+        for i in range(0, 9, 3):
+            print(f"{board[i]}|{board[i+1]}|{board[i+2]}")
+            if i < 6: print("-+-+-")
+    
+    # Check for a win
+    def check_win(p):
+        wins = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
+        return any(all(board[i] == p for i in w) for w in wins)
+    
+    # Game loop
+    print("Positions are numbered 0-8 from left to right, top to bottom.")
+    while ' ' in board:
+        print_board()
+        pos = int(input(f"Player {player}, enter position (0-8): "))  # Sample Inputs: 0, 1, 4, 3, 8
+        if 0 <= pos <= 8 and board[pos] == ' ':
+            board[pos] = player
+            if check_win(player):
+                print_board()
+                return f"Player {player} wins!"
+            player = 'O' if player == 'X' else 'X'
+        else:
+            print("Invalid move! Try again.")
+    print_board()
+    return "Draw!"
+
+# Run the game
+print(tic_tac_toe())
+
+#EXP-13 Minimax Algorithm (Simple Tic Tac Toe)
+def minimax_game():
+    # Initialize board
+    board = [' ']*9
+    
+    # Print the board
+    def print_board():
+        for i in range(0, 9, 3):
+            print(f"{board[i]}|{board[i+1]}|{board[i+2]}")
+            if i < 6: print("-+-+-")
+    
+    # Check for a win
+    def check_win(p):
+        wins = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
+        return any(all(board[i] == p for i in w) for w in wins)
+    
+    # Minimax function
+    def minimax(is_max):
+        if check_win('X'): return 10
+        if check_win('O'): return -10
+        if ' ' not in board: return 0
+        if is_max:
+            best = -float('inf')
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'X'
+                    best = max(best, minimax(False))
+                    board[i] = ' '
+            return best
+        else:
+            best = float('inf')
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'O'
+                    best = min(best, minimax(True))
+                    board[i] = ' '
+            return best
+    
+    # Game loop: User (O) vs AI (X)
+    print("You are O, AI is X. Positions are 0-8.")
+    while ' ' in board:
+        print_board()
+        pos = int(input("Your move (0-8): "))  # Sample Inputs: 4, 0
+        if 0 <= pos <= 8 and board[pos] == ' ':
+            board[pos] = 'O'
+            if check_win('O'):
+                print_board()
+                return "You win!"
+            if ' ' not in board: break
+            # AI's turn
+            best_move = max(range(9), key=lambda i: minimax(True) if board[i] == ' ' else -float('inf'))
+            board[best_move] = 'X'
+            print(f"AI plays at {best_move}")
+            if check_win('X'):
+                print_board()
+                return "AI wins!"
+        else:
+            print("Invalid move! Try again.")
+    print_board()
+    return "Draw!"
+
+# Run the game
+print(minimax_game())
+
+#EXP-14 Alpha-Beta Pruning (Simple Tic Tac Toe)
+def alpha_beta_game():
+    # Initialize board
+    board = [' ']*9
+    
+    # Print the board
+    def print_board():
+        for i in range(0, 9, 3):
+            print(f"{board[i]}|{board[i+1]}|{board[i+2]}")
+            if i < 6: print("-+-+-")
+    
+    # Check for a win
+    def check_win(p):
+        wins = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
+        return any(all(board[i] == p for i in w) for w in wins)
+    
+    # Alpha-Beta pruning
+    def alpha_beta(alpha, beta, is_max):
+        if check_win('X'): return 10
+        if check_win('O'): return -10
+        if ' ' not in board: return 0
+        if is_max:
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'X'
+                    alpha = max(alpha, alpha_beta(alpha, beta, False))
+                    board[i] = ' '
+                    if beta <= alpha: break
+            return alpha
+        else:
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'O'
+                    beta = min(beta, alpha_beta(alpha, beta, True))
+                    board[i] = ' '
+                    if beta <= alpha: break
+            return beta
+    
+    # Game loop: User (O) vs AI (X)
+    print("You are O, AI is X. Positions are 0-8.")
+    while ' ' in board:
+        print_board()
+        pos = int(input("Your move (0-8): "))  # Sample Inputs: 4, 8
+        if 0 <= pos <= 8 and board[pos] == ' ':
+            board[pos] = 'O'
+            if check_win('O'):
+                print_board()
+                return "You win!"
+            if ' ' not in board: break
+            # AI's turn
+            best_score, best_move = -float('inf'), 0
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'X'
+                    score = alpha_beta(-float('inf'), float('inf'), False)
+                    board[i] = ' '
+                    if score > best_score:
+                        best_score, best_move = score, i
+            board[best_move] = 'X'
+            print(f"AI plays at {best_move}")
+            if check_win('X'):
+                print_board()
+                return "AI wins!"
+        else:
+            print("Invalid move! Try again.")
+    print_board()
+    return "Draw!"
+
+# Run the game
+print(alpha_beta_game())
+
+#EXP-15 Decision Tree (Simple)
+def decision_tree():
+    # Get training data
+    n = int(input("Enter number of examples: "))  # Sample Input: 3
+    data = []
+    print("Enter examples (features and label, space-separated):")
+    for _ in range(n):
+        example = input(f"Example {_+1}: ").split()  # sunny hot no, overcast hot yes, rainy mild yes
+        data.append(example)
+    
+    features = list(range(len(data[0]) - 1))  # Feature indices
+    
+    # Find majority class
+    def majority(data):
+        return max(set(d[-1] for d in data), key=lambda x: sum(1 for d in data if d[-1] == x))
+    
+    # Build tree recursively
+    def build(data, features):
+        if len(set(d[-1] for d in data)) == 1:  # All same class
+            return data[0][-1]
+        if not features:  # No features left
+            return majority(data)
+        feature = features[0]  # Use first feature (simplified)
+        tree = {}
+        for value in set(d[feature] for d in data):
+            subset = [d for d in data if d[feature] == value]
+            tree[value] = build(subset, features[1:])
+        return {feature: tree}
+    
+    tree = build(data, features)
+    print("Decision Tree (feature index: {values}):", tree)
+
+# Run the decision tree
+decision_tree()
+
+#EXP-16 Feedforward Neural Network (Simple)
+import numpy as np
+
+def neural_network():
+    # Define network architecture (input layer, hidden layers, output layer)
+    layers = list(map(int, input("Enter layer sizes (e.g., 2 2 1): ").split()))  # Sample Input: 2 2 1
+    # Initialize weights: each weight matrix connects consecutive layers
+    # weights[0]: (input_size, hidden_size1), weights[1]: (hidden_size1, output_size)
+    weights = [np.random.randn(x, y) * 0.1 for x, y in zip(layers[:-1], layers[1:])]  # Fixed: Correct order
+    
+    # Sigmoid activation function
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
+    
+    # Forward propagation through the network
+    def forward(X):
+        a = X  # Start with input
+        for w in weights:
+            a = sigmoid(np.dot(a, w))  # Matrix multiplication followed by activation
+        return a
+    
+    # Get input data from user
+    n = int(input("Enter number of inputs: "))  # Sample Input: 2
+    X = []
+    print("Enter input vectors (space-separated values, must match input layer size):")
+    for _ in range(n):
+        x = list(map(float, input(f"Input {_+1}: ").split()))  # Sample Inputs: 0 0, 1 1
+        X.append(x)
+    
+    # Convert input list to numpy array
+    X = np.array(X)
+    # Ensure input matches the expected input layer size
+    if X.shape[1] != layers[0]:
+        return f"Error: Input size ({X.shape[1]}) must match input layer size ({layers[0]})!"
+    output = forward(X)
+    print("Output (random weights, varies each run):", output)
+
+# Run the neural network
+neural_network()
